@@ -1,0 +1,1182 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Traffic Analyzer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script type="module" src="https://unpkg.com/@splinetool/viewer@1.0.25/build/spline-viewer.js"></script>
+  <style>
+    :root {
+      --bg: #f3f5ef;
+      --panel: #fffdf7;
+      --panel-strong: #ffffff;
+      --surface: #f7f1e5;
+      --line: #ddd6c5;
+      --text: #1f241d;
+      --muted: #6d7567;
+      --brand: #1d7a55;
+      --brand-soft: #d7efe2;
+      --brand-strong: #0f5f40;
+      --warn: #c27b13;
+      --warn-soft: #f8e4be;
+      --danger: #bb3f33;
+      --danger-soft: #f8d8d2;
+      --shadow: 0 18px 38px rgba(49, 57, 44, .08);
+      --radius: 22px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: "Plus Jakarta Sans", sans-serif;
+      letter-spacing: .01em;
+      word-spacing: .04em;
+    }
+
+    body {
+      background: radial-gradient(circle at top left, rgba(215, 239, 226, .9), transparent 28%), radial-gradient(circle at bottom right, rgba(248, 228, 190, .7), transparent 22%), var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.55;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    button {
+      border: none;
+      cursor: pointer;
+    }
+
+    .login-screen {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      background: var(--bg);
+      z-index: 1000;
+      overflow: hidden;
+    }
+
+    .login-spline {
+      position: absolute;
+      left: -10%;
+      /* Move robot slightly more to the left */
+      top: 0;
+      width: 110%;
+      /* Over-expand to allow logo hiding */
+      height: 110%;
+      z-index: 1;
+      overflow: hidden;
+      pointer-events: none;
+
+    }
+
+    .login-spline spline-viewer {
+      width: 100%;
+      height: 100%;
+      /* Scale and offset to push the watermark out of view */
+      transform: scale(1.05);
+      margin-top: -2%;
+      margin-left: -2%;
+
+    }
+
+    .login-card {
+      width: min(460px, 90%);
+      margin-right: 8%;
+      /* Centered on the right half */
+      background: rgba(255, 253, 247, 0.4);
+      backdrop-filter: blur(25px) saturate(160%);
+      -webkit-backdrop-filter: blur(25px) saturate(160%);
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      box-shadow: 0 30px 100px rgba(0, 0, 0, 0.12);
+      border-radius: 40px;
+      padding: 44px;
+      position: relative;
+      z-index: 10;
+    }
+
+    @media (max-width: 1024px) {
+      .login-screen {
+        justify-content: center;
+        padding-right: 0;
+      }
+
+      .login-card {
+        margin-right: 0;
+        background: rgba(255, 253, 247, 0.75);
+      }
+
+      .login-spline {
+        left: -20%;
+        opacity: 0.5;
+      }
+    }
+
+    .login-card h1 {
+      font-size: 36px;
+      font-weight: 800;
+      line-height: 1.1;
+      margin-bottom: 12px;
+      color: var(--brand-strong);
+    }
+
+    .login-card p {
+      color: var(--text);
+      opacity: 0.8;
+      margin-bottom: 28px;
+      line-height: 1.6;
+      font-weight: 500;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      background: var(--brand-soft);
+      color: var(--brand-strong);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    .form-grid,
+    .settings-form,
+    .field,
+    .stack,
+    .list,
+    .nav-list,
+    .nav-meta {
+      display: grid;
+      gap: 14px;
+    }
+
+    .nav-list {
+      grid-auto-rows: minmax(50px, auto);
+      align-content: start;
+    }
+
+    .field label {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .field input,
+    .settings-form input {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px 16px;
+      background: #fff;
+      color: var(--text);
+      outline: none;
+    }
+
+    .button-row,
+    .topbar-actions,
+    .badge-row,
+    .tag-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      border-radius: 14px;
+      padding: 13px 18px;
+      font-weight: 700;
+    }
+
+    .btn-primary {
+      background: var(--brand);
+      color: #fff;
+    }
+
+    .btn-secondary {
+      background: var(--surface);
+      color: var(--text);
+    }
+
+    .btn-danger {
+      background: var(--danger-soft);
+      color: var(--danger);
+    }
+
+    .app-shell {
+      display: none;
+      min-height: 100vh;
+      grid-template-columns: 280px 1fr;
+    }
+
+    .sidebar {
+      background: rgba(255, 253, 247, .88);
+      border-right: 1px solid rgba(221, 214, 197, .8);
+      padding: 28px 20px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      gap: 26px;
+    }
+
+    .brand-block {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .brand-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, #1d7a55, #0f5f40);
+      color: #fff;
+      display: grid;
+      place-items: center;
+      font-size: 24px;
+      font-weight: 800;
+      box-shadow: 0 10px 24px rgba(15, 95, 64, .22);
+    }
+
+    .brand-title {
+      font-size: 20px;
+      font-weight: 800;
+      line-height: 1.05;
+    }
+
+    .brand-subtitle,
+    .muted,
+    .footer-note,
+    .settings-form small,
+    .panel-subtitle,
+    .topbar p,
+    .profile-box span {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .nav-item {
+      width: 100%;
+      min-height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      border-radius: 16px;
+      padding: 14px 16px;
+      color: var(--muted);
+      font-weight: 700;
+      background: transparent;
+      text-align: left;
+    }
+
+    .nav-item.active {
+      background: var(--brand-strong);
+      color: #fff;
+      box-shadow: 0 10px 22px rgba(15, 95, 64, .16);
+    }
+
+    .status-box,
+    .profile-box,
+    .hero-card,
+    .metric-card,
+    .panel {
+      background: var(--panel);
+      border: 1px solid rgba(221, 214, 197, .75);
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: var(--shadow);
+      min-width: 0;
+    }
+
+    .profile-box strong,
+    .profile-box span {
+      display: block;
+      max-width: 100%;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+
+    .status-label,
+    .hero-card .label,
+    .metric-card .label,
+    .panel .label,
+    .mini-stat span {
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    .main {
+      padding: 26px;
+      display: grid;
+      gap: 22px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .topbar h2 {
+      font-size: 30px;
+      line-height: 1.1;
+      margin-bottom: 4px;
+    }
+
+    .chip {
+      padding: 9px 12px;
+      border-radius: 999px;
+      background: var(--panel);
+      border: 1px solid rgba(221, 214, 197, .8);
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+      box-shadow: var(--shadow);
+    }
+
+    .page {
+      display: none;
+      gap: 20px;
+    }
+
+    .page.active,
+    .app-shell {
+      display: grid;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, rgba(29, 122, 85, .98), rgba(15, 95, 64, .96));
+      color: #fff;
+      border-radius: 28px;
+      padding: 24px;
+      box-shadow: var(--shadow);
+      display: grid;
+      grid-template-columns: 1.6fr 1fr;
+      gap: 18px;
+    }
+
+    .hero p {
+      color: rgba(255, 255, 255, .8);
+      line-height: 1.7;
+      max-width: 700px;
+    }
+
+    .hero-metrics,
+    .metrics-grid,
+    .result-summary,
+    .lane-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .hero-metrics {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .metrics-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .dashboard-grid,
+    .analytics-grid,
+    .settings-grid {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 18px;
+    }
+
+    .panel-header,
+    .list-item-top,
+    .incident-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .panel-title {
+      font-size: 20px;
+      font-weight: 800;
+      line-height: 1.1;
+    }
+
+    .hero-card {
+      background: rgba(255, 255, 255, .12);
+      border-color: rgba(255, 255, 255, .15);
+      color: #fff;
+    }
+
+    .hero-card .label {
+      color: rgba(255, 255, 255, .7);
+    }
+
+    .hero-card .value,
+    .metric-card .value {
+      font-size: 28px;
+      font-weight: 800;
+      line-height: 1.1;
+    }
+
+    .hero-card .sub,
+    .metric-card .sub {
+      font-size: 13px;
+      margin-top: 6px;
+      opacity: .86;
+    }
+
+    .upload-zone {
+      border: 2px dashed var(--line);
+      background: linear-gradient(135deg, rgba(215, 239, 226, .42), rgba(247, 241, 229, .85));
+      border-radius: 22px;
+      min-height: 320px;
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .upload-zone.dragover {
+      border-color: var(--brand);
+    }
+
+    .upload-zone img,
+    .upload-zone video {
+      width: 100%;
+      max-height: 420px;
+      object-fit: contain;
+      border-radius: 18px;
+      background: #eef2ea;
+    }
+
+    .upload-status,
+    .badge,
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-weight: 800;
+      font-size: 12px;
+    }
+
+    .upload-status {
+      background: var(--brand-soft);
+      color: var(--brand-strong);
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+
+    .upload-status.warn,
+    .badge.warn,
+    .tag.warn {
+      background: var(--warn-soft);
+      color: var(--warn);
+    }
+
+    .upload-status.error,
+    .badge.danger,
+    .tag.danger {
+      background: var(--danger-soft);
+      color: var(--danger);
+    }
+
+    .badge.ok,
+    .tag.ok {
+      background: var(--brand-soft);
+      color: var(--brand-strong);
+    }
+
+    .result-summary {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      margin-top: 16px;
+    }
+
+    .mini-stat,
+    .lane-card {
+      background: var(--surface);
+      border-radius: 18px;
+      padding: 14px;
+    }
+
+    .mini-stat strong {
+      display: block;
+      font-size: 22px;
+      line-height: 1.1;
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum" 1;
+      white-space: nowrap;
+    }
+
+    .lane-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .lane-card strong {
+      display: block;
+      font-size: 18px;
+      margin-bottom: 6px;
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum" 1;
+    }
+
+    .chip,
+    .hero-card .value,
+    .metric-card .value,
+    .status-box,
+    .profile-box,
+    th,
+    td {
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum" 1;
+    }
+
+    .list-item,
+    .incident-card {
+      border: 1px solid rgba(221, 214, 197, .8);
+      background: var(--panel-strong);
+      border-radius: 18px;
+      padding: 16px;
+    }
+
+    .table-wrap {
+      overflow: auto;
+      border-radius: 18px;
+      border: 1px solid rgba(221, 214, 197, .75);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+    }
+
+    th,
+    td {
+      padding: 14px 16px;
+      text-align: left;
+      border-bottom: 1px solid rgba(221, 214, 197, .7);
+      font-size: 14px;
+      vertical-align: top;
+    }
+
+    th {
+      background: #fcf8f0;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: var(--muted);
+    }
+
+    .empty-state {
+      border: 1px dashed var(--line);
+      border-radius: 20px;
+      padding: 30px;
+      text-align: center;
+      color: var(--muted);
+      background: rgba(255, 255, 255, .55);
+    }
+
+    @media (max-width:1180px) {
+      .app-shell {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        position: static;
+        height: auto;
+      }
+
+      .metrics-grid,
+      .result-summary,
+      .lane-grid,
+      .hero,
+      .dashboard-grid,
+      .analytics-grid,
+      .settings-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-metrics {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width:760px) {
+      .main {
+        padding: 18px;
+      }
+
+      .hero-card .value,
+      .metric-card .value {
+        font-size: 24px;
+      }
+
+      .hero-metrics {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="login-screen" id="login-screen">
+    <div class="login-spline">
+      <spline-viewer url="https://prod.spline.design/VGS58NCzPHE0PfaI/scene.splinecode" hint="false"
+        loading-reveal="true"></spline-viewer>
+    </div>
+    <div class="login-card">
+      <div class="eyebrow">Urban Monitoring Suite</div>
+      <h1>AI Traffic Analyzer</h1>
+      <p>Upload live street media, inspect incidents, and review system-wide traffic performance from one operational
+        workspace.</p>
+      <div class="form-grid">
+        <div class="field"><label for="login-email">Email ID</label><input id="login-email" type="email"
+            value="devavardhanmohanraj@gmail.com"></div>
+        <div class="field"><label for="login-username">Username</label><input id="login-username" type="text"
+            value="Chen"></div>
+        <div class="field"><label for="login-password">Password</label><input id="login-password" type="password"
+            value="password123"></div>
+      </div>
+      <div class="field" style="margin-top: 20px;"><button class="btn btn-primary" id="login-btn"
+          style="width:100%;">Enter Control Room</button>
+      </div>
+      <div class="button-row" style="margin-top: 12px;"><button class="btn btn-secondary" id="demo-btn"
+          style="width: 100%;">Use Demo Access</button></div>
+    </div>
+  </div>
+
+  <input type="file" id="shared-file-input" accept=".jpg,.jpeg,.png,.webp,.bmp,.jfif,video/mp4" hidden>
+
+  <div class="app-shell" id="app-shell">
+    <aside class="sidebar">
+      <div class="brand-block">
+        <div class="brand-icon">TA</div>
+        <div>
+          <div class="brand-title">AI Traffic Analyzer</div>
+          <div class="brand-subtitle">Realtime traffic intelligence</div>
+        </div>
+      </div>
+      <nav class="nav-list" id="nav-list">
+        <button class="nav-item active" data-page="dashboard">Overview</button>
+        <button class="nav-item" data-page="upload">Upload Center</button>
+        <button class="nav-item" data-page="analytics">Analytics</button>
+        <button class="nav-item" data-page="incidents">Incidents</button>
+        <button class="nav-item" data-page="reports">Reports</button>
+        <button class="nav-item" data-page="settings">Settings</button>
+      </nav>
+      <div class="nav-meta">
+        <div class="status-box">
+          <div class="status-label">Backend</div>
+          <div id="backend-status" class="upload-status warn">Checking connection</div>
+        </div>
+        <div class="profile-box"><strong id="profile-name">Chen</strong><span id="profile-email">@chen</span></div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <div>
+          <h2 id="page-title">Overview</h2>
+          <p id="page-subtitle">Live system summary, recent uploads, and adaptive traffic alerts.</p>
+        </div>
+        <div class="topbar-actions">
+          <div class="chip" id="current-time">Updating time</div><button class="btn btn-danger" id="refresh-btn">Clear
+            All Data</button><button class="btn btn-danger" id="logout-btn">Sign Out</button>
+        </div>
+      </div>
+      <section class="page active" id="page-dashboard">
+        <div class="hero">
+          <div>
+            <div class="eyebrow" style="background:rgba(255,255,255,.15);color:white;">Network Overview</div>
+            <h3 style="font-size:32px;margin-bottom:10px;">Operational visibility across uploads, incidents, and vehicle
+              movement.</h3>
+            <p id="hero-message">Waiting for backend data. Once connected, this panel summarizes live analysis volume,
+              violations, and adaptive lane control signals.</p>
+          </div>
+          <div class="hero-metrics">
+            <div class="hero-card">
+              <div class="label">Analyses</div>
+              <div class="value" id="hero-analyses">0</div>
+              <div class="sub">Processed media sessions</div>
+            </div>
+            <div class="hero-card">
+              <div class="label">Vehicles</div>
+              <div class="value" id="hero-vehicles">0</div>
+              <div class="sub">Detected objects across all records</div>
+            </div>
+            <div class="hero-card">
+              <div class="label">Incidents</div>
+              <div class="value" id="hero-incidents">0</div>
+              <div class="sub">Alerts with violations or warnings</div>
+            </div>
+            <div class="hero-card">
+              <div class="label">Critical</div>
+              <div class="value" id="hero-critical">0</div>
+              <div class="sub">Critical traffic alerts logged</div>
+            </div>
+          </div>
+        </div>
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="label">Violations Logged</div>
+            <div class="value" id="metric-violations">0</div>
+            <div class="sub">All stored traffic-rule detections</div>
+          </div>
+          <div class="metric-card">
+            <div class="label">Emergency Events</div>
+            <div class="value" id="metric-emergency">0</div>
+            <div class="sub">Green-corridor activations</div>
+          </div>
+          <div class="metric-card">
+            <div class="label">Media Mix</div>
+            <div class="value" id="metric-media">0 / 0</div>
+            <div class="sub">Images vs video analyses</div>
+          </div>
+          <div class="metric-card">
+            <div class="label">Last Analysis</div>
+            <div class="value" id="metric-last-run">None</div>
+            <div class="sub">Most recent processed record</div>
+          </div>
+        </div>
+        <div class="dashboard-grid">
+          <div class="stack">
+            <div class="panel">
+              <div class="panel-header">
+                <div>
+                  <div class="panel-title">Live Detection Console</div>
+                  <div class="panel-subtitle">Drop an image or MP4, or use the picker. The processed output is rendered
+                    here with the latest metrics.</div>
+                </div>
+                <div class="button-row"><button class="btn btn-primary upload-trigger">Upload Media</button>
+                  <div class="upload-status" id="dashboard-upload-status">Idle</div>
+                </div>
+              </div>
+              <div class="upload-zone" id="dashboard-drop-zone">
+                <div id="dashboard-preview-empty">
+                  <div style="font-size:40px;margin-bottom:10px;">?</div><strong
+                    style="display:block;font-size:20px;margin-bottom:8px;">Traffic analysis preview</strong>
+                  <div class="muted">Processed media appears here after a successful upload.</div>
+                </div><img id="dashboard-image-preview" alt="Processed traffic result" hidden><video
+                  id="dashboard-video-preview" controls hidden></video>
+              </div>
+              <div class="result-summary">
+                <div class="mini-stat"><span>Cars</span><strong id="count-cars">0</strong></div>
+                <div class="mini-stat"><span>Trucks</span><strong id="count-trucks">0</strong></div>
+                <div class="mini-stat"><span>Buses</span><strong id="count-buses">0</strong></div>
+                <div class="mini-stat"><span>Bikes</span><strong id="count-bikes">0</strong></div>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="panel-header">
+                <div>
+                  <div class="panel-title">Recent Activity</div>
+                  <div class="panel-subtitle">The latest uploads processed by the backend.</div>
+                </div>
+              </div>
+              <div class="list" id="recent-results-list"></div>
+            </div>
+          </div>
+          <div class="stack">
+            <div class="panel">
+              <div class="panel-header">
+                <div>
+                  <div class="panel-title">Traffic Flow</div>
+                  <div class="panel-subtitle">Daily analysis volume and detected vehicles.</div>
+                </div>
+              </div>
+              <div style="height:280px;"><canvas id="flow-chart"></canvas></div>
+            </div>
+            <div class="panel">
+              <div class="panel-header">
+                <div>
+                  <div class="panel-title">Vehicle Distribution</div>
+                  <div class="panel-subtitle">Aggregate vehicle classes from stored results.</div>
+                </div>
+              </div>
+              <div style="height:260px;"><canvas id="vehicle-chart"></canvas></div>
+            </div>
+            <div class="panel">
+              <div class="panel-header">
+                <div>
+                  <div class="panel-title">Adaptive Lane Status</div>
+                  <div class="panel-subtitle">Lane occupancy and suggested signal timing from the latest result.</div>
+                </div>
+              </div>
+              <div class="lane-grid" id="lane-grid"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="page" id="page-upload">
+        <div class="dashboard-grid">
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Upload Center</div>
+                <div class="panel-subtitle">Dedicated upload workspace with history and backend feedback.</div>
+              </div>
+              <div class="button-row"><button class="btn btn-primary upload-trigger">Select Media</button>
+                <div class="upload-status" id="upload-page-status">Ready</div>
+              </div>
+            </div>
+            <div class="upload-zone" id="upload-drop-zone">
+              <div id="upload-preview-empty">
+                <div style="font-size:38px;margin-bottom:10px;">?</div><strong
+                  style="display:block;font-size:20px;margin-bottom:8px;">Upload for analysis</strong>
+                <div class="muted">Supported formats: JPG, PNG, WEBP, BMP, JFIF, and MP4.</div>
+              </div><img id="upload-image-preview" alt="Upload result preview" hidden><video id="upload-video-preview"
+                controls hidden></video>
+            </div>
+          </div>
+          <div class="stack">
+            <div class="panel">
+              <div class="panel-header">
+                <div>
+                  <div class="panel-title">Latest Detection Snapshot</div>
+                  <div class="panel-subtitle">Details of the most recently processed record.</div>
+                </div>
+              </div>
+              <div class="list" id="latest-result-details"></div>
+            </div>
+            <div class="panel">
+              <div class="panel-header">
+                <div>
+                  <div class="panel-title">Storage Health</div>
+                  <div class="panel-subtitle">Quick indicators for the current dataset.</div>
+                </div>
+              </div>
+              <div class="result-summary">
+                <div class="mini-stat"><span>Total Records</span><strong id="upload-total-records">0</strong></div>
+                <div class="mini-stat"><span>Incident Rows</span><strong id="upload-incident-records">0</strong></div>
+                <div class="mini-stat"><span>Images</span><strong id="upload-image-count">0</strong></div>
+                <div class="mini-stat"><span>Videos</span><strong id="upload-video-count">0</strong></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">Upload History</div>
+              <div class="panel-subtitle">Recent records with density, alerts, and violations.</div>
+            </div>
+            <div class="button-row">
+              <button class="btn btn-danger" id="clear-history-btn">Clear History</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>File</th>
+                  <th>Type</th>
+                  <th>Vehicles</th>
+                  <th>Density</th>
+                  <th>Violations</th>
+                  <th>Alert</th>
+                  <th>Created</th>
+                </tr>
+              </thead>
+              <tbody id="upload-history-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="page" id="page-analytics">
+        <div class="analytics-grid">
+          <div class="stack">
+            <div class="panel">
+              <div class="panel-header">
+                <div>
+                  <div class="panel-title">Daily Network Load</div>
+                  <div class="panel-subtitle">Analyses, vehicle volume, and violation counts by day.</div>
+                </div>
+              </div>
+              <div style="height:320px;"><canvas id="analytics-chart"></canvas></div>
+            </div>
+            <div class="panel">
+              <div class="panel-header">
+                <div>
+                  <div class="panel-title">Density Mix</div>
+                  <div class="panel-subtitle">Distribution of low, medium, and high density analyses.</div>
+                </div>
+              </div>
+              <div style="height:260px;"><canvas id="density-chart"></canvas></div>
+            </div>
+          </div>
+          <div class="stack">
+            <div class="panel">
+              <div class="panel-header">
+                <div>
+                  <div class="panel-title">Analytics Highlights</div>
+                  <div class="panel-subtitle">Computed summary from the latest backend snapshot.</div>
+                </div>
+              </div>
+              <div class="list" id="analytics-highlights"></div>
+            </div>
+            <div class="panel">
+              <div class="panel-header">
+                <div>
+                  <div class="panel-title">Current Lane Recommendation</div>
+                  <div class="panel-subtitle">Derived from the newest processed image or video.</div>
+                </div>
+              </div>
+              <div class="lane-grid" id="analytics-lane-grid"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section class="page" id="page-incidents">
+        <div class="panel">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">Incident Center</div>
+              <div class="panel-subtitle">Violations, warnings, and emergency events extracted from stored analysis
+                records.</div>
+            </div>
+          </div>
+          <div class="list" id="incident-list"></div>
+        </div>
+      </section>
+
+      <section class="page" id="page-reports">
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="label">Results in Report</div>
+            <div class="value" id="report-row-count">0</div>
+            <div class="sub">Rows available for export</div>
+          </div>
+          <div class="metric-card">
+            <div class="label">Average Vehicles</div>
+            <div class="value" id="report-average-vehicles">0</div>
+            <div class="sub">Mean vehicles per analysis</div>
+          </div>
+          <div class="metric-card">
+            <div class="label">High Density Share</div>
+            <div class="value" id="report-high-density-share">0%</div>
+            <div class="sub">High-density analyses as a percentage</div>
+          </div>
+          <div class="metric-card">
+            <div class="label">Most Recent File</div>
+            <div class="value" id="report-latest-file">None</div>
+            <div class="sub">Last record included in the report</div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">Operational Report Table</div>
+              <div class="panel-subtitle">Use exports for downstream reporting workflows.</div>
+            </div>
+            <div class="button-row"><button class="btn btn-secondary" id="export-json-btn">Export JSON</button><button
+                class="btn btn-primary" id="export-csv-btn">Export CSV</button></div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Filename</th>
+                  <th>Media</th>
+                  <th>Vehicles</th>
+                  <th>Density</th>
+                  <th>Alert</th>
+                  <th>Violations</th>
+                  <th>Created</th>
+                </tr>
+              </thead>
+              <tbody id="reports-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="page" id="page-settings">
+        <div class="settings-grid">
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Connection Settings</div>
+                <div class="panel-subtitle">Configure the API base URL used by the frontend.</div>
+              </div>
+            </div>
+            <div class="settings-form">
+              <div class="field"><label for="api-base-input">API Base URL</label><input id="api-base-input" type="text">
+              </div><small>Use a full origin such as http://localhost:8000. The dashboard stores this locally in the
+                browser.</small>
+              <div class="button-row"><button class="btn btn-primary" id="save-settings-btn">Save
+                  Connection</button><button class="btn btn-secondary" id="reset-settings-btn">Reset Default</button>
+              </div>
+            </div>
+          </div>
+          <div class="stack">
+            <div class="panel">
+              <div class="panel-header">
+                <div>
+                  <div class="panel-title">Workspace Actions</div>
+                  <div class="panel-subtitle">Browser-only controls for this single-page app.</div>
+                </div>
+              </div>
+              <div class="button-row"><button class="btn btn-secondary" id="force-refresh-btn">Reload
+                  Data</button><button class="btn btn-danger" id="clear-session-btn">Clear Session</button></div>
+            </div>
+            <div class="panel">
+              <div class="panel-header">
+                <div>
+                  <div class="panel-title">System Notes</div>
+                  <div class="panel-subtitle">Current runtime assumptions for this project.</div>
+                </div>
+              </div>
+              <div class="list" id="system-notes"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="footer-note" id="footer-note">Ready.</div>
+    </main>
+  </div>
+
+  <script>
+    const AUTH_STORAGE_KEY = "traffic-analyzer-auth";
+    const API_STORAGE_KEY = "traffic-analyzer-api-base";
+    const USERNAME_STORAGE_KEY = "traffic-analyzer-username";
+    const EMAIL_STORAGE_KEY = "traffic-analyzer-email";
+    const PAGE_STORAGE_KEY = "traffic-analyzer-page";
+    const SUPPORTED_EXTENSIONS = new Set(["jpg", "jpeg", "png", "webp", "bmp", "jfif", "mp4"]);
+    const pageTitles = { dashboard: ["Overview", "Live system summary, recent uploads, and adaptive traffic alerts."], upload: ["Upload Center", "Dedicated upload workspace with processed previews and history."], analytics: ["Analytics", "Historical density, volume, and network-performance indicators."], incidents: ["Incidents", "Violation and alert review across all processed records."], reports: ["Reports", "Exportable operational records and management summaries."], settings: ["Settings", "Frontend connection settings and local workspace controls."] };
+    const state = { apiBase: "", overview: null, results: [], incidents: [], latestResult: null, previewResult: null, charts: {}, isUploading: false, isRefreshing: false };
+    function getUsername() { return localStorage.getItem(USERNAME_STORAGE_KEY) || "Chen"; }
+    function getEmail() { return localStorage.getItem(EMAIL_STORAGE_KEY) || "devavardhanmohanraj@gmail.com"; }
+    function applyUserIdentity(username, email) {
+      const safeUsername = (username || "Chen").trim() || "Chen";
+      const safeEmail = (email || "chen@gmail.com").trim() || "chen@gmail.com";
+      document.getElementById("profile-name").textContent = safeUsername;
+      document.getElementById("profile-email").textContent = safeEmail;
+      if (document.getElementById("login-email")) {
+        document.getElementById("login-email").value = safeEmail;
+      }
+      if (document.getElementById("login-username")) {
+        document.getElementById("login-username").value = safeUsername;
+      }
+      if ((localStorage.getItem(PAGE_STORAGE_KEY) || "dashboard") === "dashboard") {
+        document.getElementById("page-title").textContent = `Hi, ${safeUsername}`;
+      }
+    }
+    function defaultApiBase() { if (window.location.protocol === "file:") return "http://localhost:8000"; const host = window.location.hostname || "localhost"; return `${window.location.protocol}//${host}:8000`; }
+    function getApiBase() { return localStorage.getItem(API_STORAGE_KEY) || defaultApiBase(); }
+    function formatNumber(v) { return new Intl.NumberFormat("en-US").format(v || 0); }
+    function formatDate(v) { if (!v) return "N/A"; return new Date(v).toLocaleString("en-US", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }); }
+    function escapeHtml(v) { return String(v ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#39;"); }
+    function badgeClass(level) { if (level === "CRITICAL") return "danger"; if (level === "WARNING" || level === "High" || level === "Medium") return "warn"; return "ok"; }
+    function setFooter(message) { document.getElementById("footer-note").textContent = message; }
+    function setBackendStatus(text, cls) { const n = document.getElementById("backend-status"); n.textContent = text; n.className = `upload-status ${cls || ""}`.trim(); }
+    function showApp() { document.getElementById("login-screen").style.display = "none"; document.getElementById("app-shell").style.display = "grid"; }
+    function showLogin() { document.getElementById("login-screen").style.display = "flex"; document.getElementById("app-shell").style.display = "none"; }
+    function logout() { localStorage.removeItem(AUTH_STORAGE_KEY); showLogin(); }
+    function switchPage(page) { document.querySelectorAll(".nav-item").forEach(n => n.classList.toggle("active", n.dataset.page === page)); document.querySelectorAll(".page").forEach(n => n.classList.toggle("active", n.id === `page-${page}`)); localStorage.setItem(PAGE_STORAGE_KEY, page); document.getElementById("page-title").textContent = page === "dashboard" ? `Hi, ${getUsername()}` : pageTitles[page][0]; document.getElementById("page-subtitle").textContent = pageTitles[page][1]; }
+    async function apiGet(path) { const r = await fetch(`${state.apiBase}${path}`); if (!r.ok) { let d = `Request failed (${r.status})`; try { const j = await r.json(); d = j.detail || d; } catch (_) { } throw new Error(d); } return r.json(); }
+    async function clearAllData() {
+      if (!confirm("Are you sure you want to permanently delete all traffic analysis records from the database? This cannot be undone.")) return;
+      setFooter("Clearing database...");
+      try {
+        const r = await fetch(`${state.apiBase}/api/results`, { method: "DELETE" });
+        if (!r.ok) throw new Error("Delete failed");
+        state.previewResult = null;
+        state.latestResult = null;
+        await refreshData();
+        setFooter("System cleared successfully.");
+      } catch (error) {
+        console.error(error);
+        setFooter(`Error: ${error.message}`);
+      }
+    }
+    async function refreshData() {
+      if (state.isRefreshing) return;
+      state.isRefreshing = true;
+      setFooter("Refreshing data from backend...");
+      try {
+        const [overview, results, incidents] = await Promise.all([
+          apiGet("/api/overview"),
+          apiGet("/api/results?limit=100"),
+          apiGet("/api/incidents?limit=100")
+        ]);
+        state.overview = overview;
+        state.results = results;
+        state.incidents = incidents;
+        state.latestResult = results[0] || null;
+        if (!state.isUploading) {
+          state.previewResult = results[0] || null;
+        }
+        renderAll();
+        setBackendStatus("Connected", "");
+        setFooter(`Loaded ${results.length} records.`);
+      } catch (error) {
+        console.error(error);
+        setBackendStatus("Offline", "error");
+        setFooter(`Error: ${error.message}`);
+        renderOfflineState(error.message);
+      } finally {
+        state.isRefreshing = false;
+      }
+    }
+    function renderOfflineState(message) { const fallback = `<div class="empty-state">${escapeHtml(message)}<br>Start the FastAPI backend and refresh.</div>`; document.getElementById("recent-results-list").innerHTML = fallback; document.getElementById("incident-list").innerHTML = fallback; document.getElementById("upload-history-body").innerHTML = `<tr><td colspan="7">${escapeHtml(message)}</td></tr>`; document.getElementById("reports-body").innerHTML = `<tr><td colspan="8">${escapeHtml(message)}</td></tr>`; document.getElementById("latest-result-details").innerHTML = fallback; document.getElementById("analytics-highlights").innerHTML = fallback; document.getElementById("lane-grid").innerHTML = fallback; document.getElementById("analytics-lane-grid").innerHTML = fallback; }
+    function renderAll() { renderOverviewCards(); renderRecentResults(); renderLatestResult(); renderIncidents(); renderTables(); renderHighlights(); renderSystemNotes(); renderCharts(); }
+    function renderOverviewCards() { const totals = state.overview?.totals || {}; const media = state.overview?.media_distribution || { image: 0, video: 0 }; const last = state.results[0]; document.getElementById("hero-analyses").textContent = formatNumber(totals.analyses); document.getElementById("hero-vehicles").textContent = formatNumber(totals.vehicles); document.getElementById("hero-incidents").textContent = formatNumber(totals.incidents); document.getElementById("hero-critical").textContent = formatNumber(totals.high_traffic_events); document.getElementById("metric-violations").textContent = formatNumber(totals.violations); document.getElementById("metric-emergency").textContent = formatNumber(totals.emergency_events); document.getElementById("metric-media").textContent = `${formatNumber(media.image)} / ${formatNumber(media.video)}`; document.getElementById("metric-last-run").textContent = last ? formatDate(last.created_at) : "None"; document.getElementById("hero-message").textContent = last ? `Latest processed media: ${last.filename}. Density is ${last.density_level}, with ${last.violation_count} logged violations and alert level ${last.traffic_alert?.level || "OK"}.` : "No analysis records are available yet. Upload media to populate the dashboard."; document.getElementById("upload-total-records").textContent = formatNumber(totals.analyses); document.getElementById("upload-incident-records").textContent = formatNumber(totals.incidents); document.getElementById("upload-image-count").textContent = formatNumber(media.image); document.getElementById("upload-video-count").textContent = formatNumber(media.video); document.getElementById("report-row-count").textContent = formatNumber(state.results.length); const avg = state.results.length ? (state.results.reduce((s, i) => s + (i.total_vehicles || 0), 0) / state.results.length).toFixed(1) : "0"; const highCount = state.results.filter(i => i.density_level === "High").length; const highShare = state.results.length ? Math.round((highCount / state.results.length) * 100) : 0; document.getElementById("report-average-vehicles").textContent = avg; document.getElementById("report-high-density-share").textContent = `${highShare}%`; document.getElementById("report-latest-file").textContent = last ? last.filename : "None"; }
+    function renderRecentResults() { const c = document.getElementById("recent-results-list"); if (!state.results.length) { c.innerHTML = `<div class="empty-state">No results available yet.</div>`; return; } c.innerHTML = state.results.slice(0, 8).map(item => `<div class="list-item"><div class="list-item-top"><div><strong>${escapeHtml(item.filename)}</strong><div class="muted">${formatDate(item.created_at)}</div></div><span class="badge ${badgeClass(item.traffic_alert?.level)}">${escapeHtml(item.traffic_alert?.alert || "NORMAL")}</span></div><div class="muted">${escapeHtml(item.media_type.toUpperCase())} · ${formatNumber(item.total_vehicles)} vehicles · ${escapeHtml(item.density_level)} density</div><div class="badge-row"><span class="badge ${badgeClass(item.density_level)}">${escapeHtml(item.density_level)} Density</span><span class="badge ${item.violation_count ? "danger" : "ok"}">${formatNumber(item.violation_count)} Violations</span></div></div>`).join(""); }
+    function renderLaneGrid(targetId, laneCounts = {}, signalTiming = {}, emergencyStatus = {}) { const c = document.getElementById(targetId); const lanes = ["lane1", "lane2", "lane3", "lane4"]; c.innerHTML = lanes.map((laneKey, index) => { const time = signalTiming?.[laneKey]?.time ?? 0; const count = laneCounts?.[laneKey] ?? 0; const stateText = emergencyStatus?.emergency ? "Priority Green" : "Adaptive Green"; return `<div class="lane-card"><strong>Lane ${index + 1}</strong><span>${formatNumber(count)} vehicles</span><span>${formatNumber(time)} sec · ${stateText}</span></div>`; }).join(""); }
+    function renderMedia(prefix, result) { const image = document.getElementById(`${prefix}-image-preview`); const video = document.getElementById(`${prefix}-video-preview`); const empty = document.getElementById(`${prefix}-preview-empty`); if (!result) { image.hidden = true; video.hidden = true; empty.hidden = false; return; } const url = `${state.apiBase}${result.processed_url}`; if (result.media_type === "video") { image.hidden = true; video.hidden = false; video.src = url; } else { video.hidden = true; image.hidden = false; image.src = url; } empty.hidden = true; }
+    function renderLatestResult() { const item = state.latestResult; const laneCounts = item?.lane_counts || {}; const signalTiming = item?.signal_timing || {}; document.getElementById("count-cars").textContent = formatNumber(item?.vehicle_counts?.car || 0); document.getElementById("count-trucks").textContent = formatNumber(item?.vehicle_counts?.truck || 0); document.getElementById("count-buses").textContent = formatNumber(item?.vehicle_counts?.bus || 0); document.getElementById("count-bikes").textContent = formatNumber(item?.vehicle_counts?.bike || 0); renderLaneGrid("lane-grid", laneCounts, signalTiming, item?.emergency_status); renderLaneGrid("analytics-lane-grid", laneCounts, signalTiming, item?.emergency_status); const details = document.getElementById("latest-result-details"); if (!item) { details.innerHTML = `<div class="empty-state">Upload media to see the latest detection summary.</div>`; renderMedia("dashboard", null); renderMedia("upload", null); return; } details.innerHTML = `<div class="list-item"><div class="list-item-top"><div><strong>${escapeHtml(item.filename)}</strong><div class="muted">${formatDate(item.created_at)}</div></div><span class="badge ${badgeClass(item.traffic_alert?.level)}">${escapeHtml(item.traffic_alert?.alert || "NORMAL")}</span></div><div class="muted">${formatNumber(item.total_vehicles)} vehicles detected. ${formatNumber(item.violation_count)} violations logged.</div><div class="badge-row"><span class="badge ${badgeClass(item.density_level)}">${escapeHtml(item.density_level)} Density</span><span class="badge ${item.emergency_status?.emergency ? "danger" : "ok"}">${item.emergency_status?.emergency ? "Emergency Route" : "No Emergency"}</span></div></div>`; renderMedia("dashboard", state.previewResult || item); renderMedia("upload", state.previewResult || item); }
+    function renderIncidents() { const c = document.getElementById("incident-list"); if (!state.incidents.length) { c.innerHTML = `<div class="empty-state">No incidents in the current dataset.</div>`; return; } c.innerHTML = state.incidents.map(item => { const types = (item.violations || []).map(v => v.type).filter(Boolean); const description = types.length ? types.join(", ") : (item.emergency_status?.emergency ? item.emergency_status.message : (item.traffic_alert?.alert || "Alert")); return `<div class="incident-card"><div class="incident-top"><div><strong>${escapeHtml(item.filename)}</strong><div class="muted">${formatDate(item.created_at)} · ${escapeHtml(item.media_type.toUpperCase())}</div></div><span class="tag ${badgeClass(item.traffic_alert?.level)}">${escapeHtml(item.traffic_alert?.alert || "NORMAL")}</span></div><div class="muted">${escapeHtml(description)}</div><div class="tag-row"><span class="tag ${item.violation_count ? "danger" : "ok"}">${formatNumber(item.violation_count)} Violations</span><span class="tag ${item.emergency_status?.emergency ? "danger" : "ok"}">${item.emergency_status?.emergency ? "Emergency" : "No Emergency"}</span></div></div>`; }).join(""); }
+    function renderTables() { document.getElementById("upload-history-body").innerHTML = state.results.length ? state.results.map(item => `<tr><td>${escapeHtml(item.filename)}</td><td>${escapeHtml(item.media_type)}</td><td>${formatNumber(item.total_vehicles)}</td><td><span class="badge ${badgeClass(item.density_level)}">${escapeHtml(item.density_level)}</span></td><td>${formatNumber(item.violation_count)}</td><td><span class="badge ${badgeClass(item.traffic_alert?.level)}">${escapeHtml(item.traffic_alert?.alert || "NORMAL")}</span></td><td>${formatDate(item.created_at)}</td></tr>`).join("") : `<tr><td colspan="7">No upload history yet.</td></tr>`; document.getElementById("reports-body").innerHTML = state.results.length ? state.results.map(item => `<tr><td>${formatNumber(item.id)}</td><td>${escapeHtml(item.filename)}</td><td>${escapeHtml(item.media_type)}</td><td>${formatNumber(item.total_vehicles)}</td><td>${escapeHtml(item.density_level)}</td><td>${escapeHtml(item.traffic_alert?.alert || "NORMAL")}</td><td>${formatNumber(item.violation_count)}</td><td>${formatDate(item.created_at)}</td></tr>`).join("") : `<tr><td colspan="8">No report rows available.</td></tr>`; }
+    function renderHighlights() { const totals = state.overview?.totals || {}; const highlights = [`Analyses completed: ${formatNumber(totals.analyses || 0)}`, `Vehicles detected across all media: ${formatNumber(totals.vehicles || 0)}`, `Violations logged: ${formatNumber(totals.violations || 0)}`, `Critical or warning incidents: ${formatNumber(totals.incidents || 0)}`]; document.getElementById("analytics-highlights").innerHTML = highlights.map(text => `<div class="list-item"><strong>${escapeHtml(text)}</strong></div>`).join(""); }
+    function renderSystemNotes() { const notes = [`Frontend API base: ${state.apiBase}`, `Backend records loaded: ${state.results.length}`, `Local session persistence is stored in browser localStorage.`, `Uploads are processed by FastAPI and YOLOv8 through /api/upload.`]; document.getElementById("system-notes").innerHTML = notes.map(note => `<div class="list-item"><div class="muted">${escapeHtml(note)}</div></div>`).join(""); }
+    function chartInstance(id, builder) { const ctx = document.getElementById(id).getContext("2d"); if (!state.charts[id]) state.charts[id] = new Chart(ctx, builder()); return state.charts[id]; }
+    function renderCharts() { const flow = state.overview?.flow_series || []; const vehicles = state.overview?.vehicle_type_totals || {}; const density = state.overview?.density_distribution || { Low: 0, Medium: 0, High: 0 }; chartInstance("flow-chart", () => ({ type: "bar", data: { labels: [], datasets: [{ label: "Vehicles", data: [], backgroundColor: "#1d7a55", borderRadius: 8 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } })); state.charts["flow-chart"].data.labels = flow.map(i => i.date.slice(5)); state.charts["flow-chart"].data.datasets[0].data = flow.map(i => i.vehicles); state.charts["flow-chart"].update(); chartInstance("vehicle-chart", () => ({ type: "doughnut", data: { labels: [], datasets: [{ data: [], backgroundColor: ["#1d7a55", "#d88d1d", "#2563eb", "#6d7567", "#bb3f33"], borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "bottom" } } } })); state.charts["vehicle-chart"].data.labels = Object.keys(vehicles); state.charts["vehicle-chart"].data.datasets[0].data = Object.values(vehicles); state.charts["vehicle-chart"].update(); chartInstance("analytics-chart", () => ({ type: "line", data: { labels: [], datasets: [{ label: "Analyses", data: [], borderColor: "#1d7a55", backgroundColor: "rgba(29,122,85,.12)", tension: .35, fill: true }, { label: "Violations", data: [], borderColor: "#bb3f33", backgroundColor: "rgba(187,63,51,.08)", tension: .35, fill: false }] }, options: { responsive: true, maintainAspectRatio: false } })); state.charts["analytics-chart"].data.labels = flow.map(i => i.date.slice(5)); state.charts["analytics-chart"].data.datasets[0].data = flow.map(i => i.analyses); state.charts["analytics-chart"].data.datasets[1].data = flow.map(i => i.violations); state.charts["analytics-chart"].update(); chartInstance("density-chart", () => ({ type: "polarArea", data: { labels: ["Low", "Medium", "High"], datasets: [{ data: [], backgroundColor: ["#d7efe2", "#f8e4be", "#f8d8d2"] }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "bottom" } } } })); state.charts["density-chart"].data.datasets[0].data = [density.Low || 0, density.Medium || 0, density.High || 0]; state.charts["density-chart"].update(); }
+    function setUploadStatus(id, text, cls = "") { const n = document.getElementById(id); n.textContent = text; n.className = `upload-status ${cls}`.trim(); }
+    function pickFile() { document.getElementById("shared-file-input").click(); }
+    async function handleUpload(file) { if (!file || state.isUploading) return; const ext = (file.name.split(".").pop() || "").toLowerCase(); if (!SUPPORTED_EXTENSIONS.has(ext)) { setUploadStatus("dashboard-upload-status", "Unsupported file", "error"); setUploadStatus("upload-page-status", "Unsupported file", "error"); setFooter("Unsupported upload format."); return; } state.isUploading = true; setUploadStatus("dashboard-upload-status", "Processing", "warn"); setUploadStatus("upload-page-status", "Processing", "warn"); setFooter(`Uploading ${file.name}...`); switchPage("dashboard"); try { const formData = new FormData(); formData.append("file", file); const response = await fetch(`${state.apiBase}/api/upload`, { method: "POST", body: formData }); if (!response.ok) { let detail = `Upload failed (${response.status})`; try { const data = await response.json(); detail = data.detail || detail; } catch (_) { } throw new Error(detail); } const result = await response.json(); state.latestResult = result; state.previewResult = result; renderLatestResult(); await refreshData(); setUploadStatus("dashboard-upload-status", "Analysis Complete", ""); setUploadStatus("upload-page-status", "Analysis Complete", ""); setFooter(`Processed ${file.name} successfully.`); } catch (error) { console.error(error); setUploadStatus("dashboard-upload-status", "Upload Error", "error"); setUploadStatus("upload-page-status", "Upload Error", "error"); setFooter(error.message); } finally { state.isUploading = false; document.getElementById("shared-file-input").value = ""; } }
+    function bindUploadZone(id) { const zone = document.getElementById(id); zone.addEventListener("dragover", event => { event.preventDefault(); zone.classList.add("dragover"); }); zone.addEventListener("dragleave", () => zone.classList.remove("dragover")); zone.addEventListener("drop", event => { event.preventDefault(); zone.classList.remove("dragover"); handleUpload(event.dataTransfer.files?.[0]); }); zone.addEventListener("click", pickFile); }
+    function downloadFile(name, content, type) { const blob = new Blob([content], { type }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = name; a.click(); URL.revokeObjectURL(url); }
+    function exportJson() { downloadFile("traffic-report.json", JSON.stringify(state.results, null, 2), "application/json"); }
+    function exportCsv() { const header = ["id", "filename", "media_type", "total_vehicles", "density_level", "alert", "violation_count", "created_at"]; const rows = state.results.map(i => [i.id, `"${String(i.filename).replaceAll('"', '""')}"`, i.media_type, i.total_vehicles, i.density_level, i.traffic_alert?.alert || "NORMAL", i.violation_count, i.created_at]); const csv = [header.join(","), ...rows.map(r => r.join(","))].join("\n"); downloadFile("traffic-report.csv", csv, "text/csv"); }
+    function updateClock() { document.getElementById("current-time").textContent = new Date().toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" }); }
+    function saveConnectionSettings() { const input = document.getElementById("api-base-input"); state.apiBase = (input.value.trim().replace(/\/$/, "") || defaultApiBase()); localStorage.setItem(API_STORAGE_KEY, state.apiBase); setFooter(`Saved API base ${state.apiBase}`); refreshData(); }
+    function resetConnectionSettings() { state.apiBase = defaultApiBase(); localStorage.setItem(API_STORAGE_KEY, state.apiBase); document.getElementById("api-base-input").value = state.apiBase; setFooter("Reset API base to default."); refreshData(); }
+    function initialize() { state.apiBase = getApiBase().replace(/\/$/, ""); document.getElementById("api-base-input").value = state.apiBase; applyUserIdentity(getUsername(), getEmail()); document.getElementById("login-btn").addEventListener("click", () => { const username = document.getElementById("login-username").value || "Chen"; const email = document.getElementById("login-email").value || "chen@gmail.com"; localStorage.setItem(AUTH_STORAGE_KEY, "true"); localStorage.setItem(USERNAME_STORAGE_KEY, username.trim() || "Chen"); localStorage.setItem(EMAIL_STORAGE_KEY, email.trim() || "chen@gmail.com"); applyUserIdentity(username, email); showApp(); refreshData(); }); document.getElementById("demo-btn").addEventListener("click", () => { localStorage.setItem(AUTH_STORAGE_KEY, "true"); applyUserIdentity(getUsername(), getEmail()); showApp(); refreshData(); }); document.querySelectorAll(".nav-item").forEach(n => n.addEventListener("click", () => switchPage(n.dataset.page))); document.querySelectorAll(".upload-trigger").forEach(n => n.addEventListener("click", pickFile)); document.getElementById("shared-file-input").addEventListener("change", e => handleUpload(e.target.files?.[0])); bindUploadZone("dashboard-drop-zone"); bindUploadZone("upload-drop-zone"); document.getElementById("refresh-btn").addEventListener("click", clearAllData); document.getElementById("clear-history-btn").addEventListener("click", clearAllData); document.getElementById("force-refresh-btn").addEventListener("click", refreshData); document.getElementById("logout-btn").addEventListener("click", logout); document.getElementById("clear-session-btn").addEventListener("click", () => { localStorage.removeItem(AUTH_STORAGE_KEY); localStorage.removeItem(PAGE_STORAGE_KEY); localStorage.removeItem(USERNAME_STORAGE_KEY); localStorage.removeItem(EMAIL_STORAGE_KEY); setFooter("Session cleared."); logout(); }); document.getElementById("save-settings-btn").addEventListener("click", saveConnectionSettings); document.getElementById("reset-settings-btn").addEventListener("click", resetConnectionSettings); document.getElementById("export-json-btn").addEventListener("click", exportJson); document.getElementById("export-csv-btn").addEventListener("click", exportCsv); updateClock(); setInterval(updateClock, 60000); switchPage(localStorage.getItem(PAGE_STORAGE_KEY) || "dashboard"); if (localStorage.getItem(AUTH_STORAGE_KEY) === "true") { showApp(); refreshData(); } else { showLogin(); } }
+    initialize();
+  </script>
+</body>
+
+</html>
