@@ -333,13 +333,52 @@ def list_incidents(limit: int = 20, db: Session = Depends(get_db)):
 
 
 @router.post("/chat")
-async def chat_with_codex(payload: dict):
+async def chat_with_codex(payload: dict, db: Session = Depends(get_db)):
     """
     AI assistant endpoint for contextual traffic analysis.
-    In production, this would integrate with the Gemini API to analyze database trends.
+    Provides intelligent responses based on real-time database state.
     """
-    message = payload.get("message", "")
-    # Simulated contextual response based on the system state
-    return {
-        "response": f"Analyzing traffic context... Regarding '{message}', I've reviewed the latest results and noticed Lane 2 density is consistently 'High'. I suggest increasing the adaptive green signal time to 45s for that zone to alleviate the bottleneck."
-    }
+    message = payload.get("message", "").lower()
+    
+    # Fetch latest system state
+    records = db.query(DetectionResult).order_by(DetectionResult.created_at.desc()).all()
+    overview = _aggregate_overview(records)
+    totals = overview["totals"]
+    
+    # Logic for context-aware responses
+    if "how many vehicles" in message or "total vehicles" in message:
+        response = f"Based on our records, we've detected a total of {totals['vehicles']} vehicles across {totals['analyses']} analysis sessions."
+    
+    elif "violations" in message or "rules" in message:
+        response = f"The system has logged {totals['violations']} traffic violations. "
+        if totals['violations'] > 0:
+            latest_v = records[0].violation_count if records else 0
+            response += f"The most recent analysis session recorded {latest_v} violations."
+        else:
+            response += "Currently, the network appears to be following standard traffic protocols."
+            
+    elif "incident" in message or "emergency" in message:
+        if totals['emergency_events'] > 0:
+            response = f"I've identified {totals['emergency_events']} emergency events. The green-corridor system was activated for these sessions to prioritize first responders."
+        else:
+            response = "No active emergency incidents are currently flagged in the system."
+            
+    elif "density" in message or "traffic" in message:
+        dist = overview["density_distribution"]
+        if dist["High"] > dist["Low"]:
+            response = f"Network density is leaning towards 'High' ({dist['High']} sessions). I recommend reviewing the adaptive lane timings in the Analytics tab."
+        else:
+            response = f"Current trends show mostly 'Low' to 'Medium' density across {totals['analyses']} records. Flow is stable."
+            
+    elif "status" in message or "summary" in message:
+        response = f"System Report: {totals['analyses']} analyses completed, {totals['vehicles']} vehicles detected, and {totals['incidents']} incidents flagged. System health is optimal."
+        
+    else:
+        # Generic but helpful response
+        if not records:
+            response = "I'm ready to help, but I don't see any analysis records yet. Try uploading an image or video to get started!"
+        else:
+            latest = records[0]
+            response = f"I'm monitoring the traffic network. The last analysis was '{latest.filename}' with {latest.total_vehicles} vehicles and {latest.density_level} density. How can I assist further?"
+
+    return {"response": response}

@@ -243,16 +243,12 @@
     }
 
     .brand-icon {
-      width: 52px;
-      height: 52px;
+      width: 150px;
+      height: 150px;
       border-radius: 18px;
-      background: linear-gradient(135deg, #1d7a55, #0f5f40);
       color: #fff;
       display: grid;
       place-items: center;
-      font-size: 24px;
-      font-weight: 800;
-      box-shadow: 0 10px 24px rgba(15, 95, 64, .22);
     }
 
     .brand-title {
@@ -679,7 +675,7 @@
   <div class="app-shell" id="app-shell">
     <aside class="sidebar">
       <div class="brand-block">
-        <div class="brand-icon">TA</div>
+        <div class="brand-icon"> <img src="logo.png" alt="ruroxz logo" style="max-width: 100%; max-height: 100%; object-fit: contain; display: block;"> </div>
         <div>
           <div class="brand-title">AI Traffic Analyzer</div>
           <div class="brand-subtitle">Realtime traffic intelligence</div>
@@ -691,6 +687,7 @@
         <button class="nav-item" data-page="analytics">Analytics</button>
         <button class="nav-item" data-page="incidents">Incidents</button>
         <button class="nav-item" data-page="reports">Reports</button>
+        <button class="nav-item" data-page="ai-assistant">AI Assistant</button>
         <button class="nav-item" data-page="settings">Settings</button>
       </nav>
       <div class="nav-meta">
@@ -968,9 +965,94 @@
           </div>
           <div class="list" id="incident-list"></div>
         </div>
-      </section>
+        </section>
 
-      <section class="page" id="page-reports">
+        <section class="page" id="page-ai-assistant">
+        <div class="dashboard-grid">
+          <div class="panel" style="height: calc(100vh - 200px); display: flex; flex-direction: column;">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Intelligence Console</div>
+                <div class="panel-subtitle">Query the traffic network using natural language.</div>
+              </div>
+            </div>
+            <div id="page-chat-messages"
+              style="flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; border: 1px solid var(--line); border-radius: 18px; margin-bottom: 16px; background: white; font-size: 14px;">
+              <div class="message bot">Operational AI online. I have analyzed the latest database records and am ready to
+                provide insights. What would you like to know?</div>
+            </div>
+            <div class="mini-input-group" style="display: flex; gap: 10px; align-items: center;">
+              <input type="text" id="page-chat-input" placeholder="e.g., 'What is the most frequent violation type?'"
+                style="padding: 12px 16px; flex: 1; border: 1px solid var(--line); border-radius: 12px; outline: none;">
+              <button id="page-chat-send"
+                style="width: 48px; height: 48px; border-radius: 12px; background: var(--brand-strong); color: white; display: grid; place-items: center; flex-shrink: 0;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="22" y1="2" x2="11" y2="13"></line>
+                  <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="stack">
+            <div class="panel">
+              <div class="panel-header">
+                <div>
+                  <div class="panel-title">Intelligence Context</div>
+                  <div class="panel-subtitle">Capabilities & suggested queries.</div>
+                </div>
+              </div>
+              <div class="list">
+                <div class="list-item">
+                  <div class="muted" style="font-size: 12px; margin-bottom: 8px;">YOU CAN ASK ABOUT:</div>
+                  <div class="tag-row" style="gap: 6px;">
+                    <span class="tag ok">Vehicle Counts</span>
+                    <span class="tag ok">Density Trends</span>
+                    <span class="tag danger">Violations</span>
+                    <span class="tag warn">Emergency Events</span>
+                  </div>
+                </div>
+                <div class="list-item" style="cursor: pointer;"
+                  onclick="document.getElementById('page-chat-input').value='Show me a traffic summary'; document.getElementById('page-chat-send').click();">
+                  <strong>"Show me a traffic summary"</strong>
+                  <div class="muted">Get a high-level overview of system performance.</div>
+                </div>
+                <div class="list-item" style="cursor: pointer;"
+                  onclick="document.getElementById('page-chat-input').value='How many violations were logged?'; document.getElementById('page-chat-send').click();">
+                  <strong>"How many violations were logged?"</strong>
+                  <div class="muted">Check for rules-based incidents in the database.</div>
+                </div>
+                <div class="list-item" style="cursor: pointer;"
+                  onclick="document.getElementById('page-chat-input').value='Tell me about traffic density'; document.getElementById('page-chat-send').click();">
+                  <strong>"Tell me about traffic density"</strong>
+                  <div class="muted">Analyze flow patterns across all records.</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel">
+              <div class="panel-header">
+                <div>
+                  <div class="panel-title">Model Status</div>
+                  <div class="panel-subtitle">Operational health of the AI module.</div>
+                </div>
+              </div>
+              <div class="status-box">
+                <div class="status-label">Knowledge Base</div>
+                <div class="upload-status">Real-time DB Sync</div>
+              </div>
+              <div class="status-box" style="margin-top: 10px;">
+                <div class="status-label">Response Mode</div>
+                <div class="upload-status">Context-Aware</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        </section>
+
+        <section class="page" id="page-reports">
+
         <div class="metrics-grid">
           <div class="metric-card">
             <div class="label">Results in Report</div>
@@ -1068,22 +1150,181 @@
     </main>
   </div>
 
+  <!-- Chatbot UI -->
+  <style>
+    #chat-widget {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 1000;
+    }
+
+    #chat-toggle {
+      width: 60px;
+      height: 60px;
+      border-radius: 30px;
+      background: var(--brand-strong);
+      color: white;
+      display: grid;
+      place-items: center;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    }
+
+    #chat-window {
+      display: none;
+      position: absolute;
+      bottom: 80px;
+      right: 0;
+      width: 350px;
+      height: 500px;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    #chat-header {
+      padding: 16px;
+      background: var(--brand-strong);
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    #chat-messages {
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    #chat-input-area {
+      padding: 16px;
+      border-top: 1px solid var(--line);
+      display: flex;
+      gap: 8px;
+    }
+
+    #chat-input {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+    }
+
+    #chat-send {
+      padding: 0 15px;
+      background: var(--brand-strong);
+      color: white;
+      border-radius: 10px;
+    }
+  </style>
+
+  <div id="chat-widget">
+    <button id="chat-toggle" title="Chat with AI Assistant">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+      </svg>
+    </button>
+    <div id="chat-window">
+      <div id="chat-header">
+        <div>
+          <strong>AI Traffic Assistant</strong>
+          <div style="font-size: 11px; opacity: 0.8;">Operational Intelligence</div>
+        </div>
+        <button id="chat-close" style="background:transparent; color:white; font-size:24px;">&times;</button>
+      </div>
+      <div id="chat-messages">
+        <div class="message bot">
+          Hello! I'm your AI traffic assistant. How can I help you analyze the system today?
+        </div>
+      </div>
+      <div id="chat-input-area">
+        <input type="text" id="chat-input" placeholder="Ask about traffic trends...">
+        <button id="chat-send">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script>
+    // Chatbot functionality
+    const chatToggle = document.getElementById('chat-toggle');
+    const chatWindow = document.getElementById('chat-window');
+    const chatClose = document.getElementById('chat-close');
+    const chatInput = document.getElementById('chat-input');
+    const chatSend = document.getElementById('chat-send');
+    const chatMessages = document.getElementById('chat-messages');
+
+    chatToggle.addEventListener('click', () => {
+      chatWindow.style.display = chatWindow.style.display === 'flex' ? 'none' : 'flex';
+    });
+
+    chatClose.addEventListener('click', () => {
+      chatWindow.style.display = 'none';
+    });
+
+    async function sendChatMessage() {
+      const text = chatInput.value.trim();
+      if (!text) return;
+
+      // Add user message
+      chatMessages.innerHTML += `<div class="message user" style="text-align: right; margin-bottom: 8px;"><strong>You:</strong> ${escapeHtml(text)}</div>`;
+      chatInput.value = '';
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+
+      // Send to backend (assuming endpoint /api/chat)
+      try {
+        const response = await fetch(`${state.apiBase}/api/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: text })
+        });
+        const data = await response.json();
+        chatMessages.innerHTML += `<div class="message bot" style="margin-bottom: 8px;"><strong>Bot:</strong> ${escapeHtml(data.response)}</div>`;
+      } catch (e) {
+        chatMessages.innerHTML += `<div class="message bot" style="color:var(--danger);"><strong>Error:</strong> Could not connect to AI.</div>`;
+      }
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    chatSend.addEventListener('click', sendChatMessage);
+    chatInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendChatMessage(); });
+
+    // ... (rest of the existing script remains unchanged)
     const AUTH_STORAGE_KEY = "traffic-analyzer-auth";
     const API_STORAGE_KEY = "traffic-analyzer-api-base";
     const USERNAME_STORAGE_KEY = "traffic-analyzer-username";
     const EMAIL_STORAGE_KEY = "traffic-analyzer-email";
     const PAGE_STORAGE_KEY = "traffic-analyzer-page";
     const SUPPORTED_EXTENSIONS = new Set(["jpg", "jpeg", "png", "webp", "bmp", "jfif", "mp4"]);
-    const pageTitles = { dashboard: ["Overview", "Live system summary, recent uploads, and adaptive traffic alerts."], upload: ["Upload Center", "Dedicated upload workspace with processed previews and history."], analytics: ["Analytics", "Historical density, volume, and network-performance indicators."], incidents: ["Incidents", "Violation and alert review across all processed records."], reports: ["Reports", "Exportable operational records and management summaries."], settings: ["Settings", "Frontend connection settings and local workspace controls."] };
+    const pageTitles = {
+      dashboard: ["Overview", "Live system summary, recent uploads, and adaptive traffic alerts."],
+      upload: ["Upload Center", "Dedicated upload workspace with processed previews and history."],
+      analytics: ["Analytics", "Historical density, volume, and network-performance indicators."],
+      incidents: ["Incidents", "Violation and alert review across all processed records."],
+      reports: ["Reports", "Exportable operational records and management summaries."],
+      "ai-assistant": ["AI Assistant", "Direct intelligence interface for traffic analysis."],
+      settings: ["Settings", "Frontend connection settings and local workspace controls."]
+    };
     const state = { apiBase: "", overview: null, results: [], incidents: [], latestResult: null, previewResult: null, charts: {}, isUploading: false, isRefreshing: false };
     function getUsername() { return localStorage.getItem(USERNAME_STORAGE_KEY) || "Chen"; }
     function getEmail() { return localStorage.getItem(EMAIL_STORAGE_KEY) || "devavardhanmohanraj@gmail.com"; }
     function applyUserIdentity(username, email) {
       const safeUsername = (username || "Chen").trim() || "Chen";
       const safeEmail = (email || "chen@gmail.com").trim() || "chen@gmail.com";
-      document.getElementById("profile-name").textContent = safeUsername;
-      document.getElementById("profile-email").textContent = safeEmail;
+      document.getElementById("profile-name").textContent = "";
+      document.getElementById("profile-email").textContent = "";
       if (document.getElementById("login-email")) {
         document.getElementById("login-email").value = safeEmail;
       }
