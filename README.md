@@ -1,4 +1,4 @@
-# 🚦 AI Traffic Analyzer (Full Stack)
+#    🚦 AI Traffic Analyzer (Full Stack)
 
 <p align="center">
   <b>AI-powered traffic analysis system using YOLOv8, FastAPI, and modern web technologies</b>
